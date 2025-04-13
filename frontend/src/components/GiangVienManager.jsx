@@ -207,12 +207,12 @@ const GiangVienManager = ({ refreshKey }) => {
   );
 
   return (
-    <Container fluid>
+    <Container >
       <Card className="mb-4">
         <Card.Header className="d-flex justify-content-between align-items-center">
           <h5 className="mb-0">Quản lý giảng viên</h5>
           <div>
-            <Button variant="info" onClick={handleShowStatsModal} id="giangvien-stats-btn">
+            <Button variant="outline-light" onClick={handleShowStatsModal} id="giangvien-stats-btn">
               <FontAwesomeIcon icon={faChartBar} /> Báo cáo thống kê
             </Button>
           </div>
@@ -274,7 +274,7 @@ const GiangVienManager = ({ refreshKey }) => {
                       <td>{renderGioiTinh(giangVien.gioiTinh)}</td>
                       <td>{giangVien.khoa || "Chưa phân khoa"}</td>
                       <td>
-                        <Button variant="outline-primary" size="sm" className="me-1" onClick={() => handleShowEditModal(giangVien)}>
+                        <Button variant="outline-primary" size="sm" className="mb-1" onClick={() => handleShowEditModal(giangVien)}>
                           <FontAwesomeIcon icon={faEdit} />
                         </Button>
                         <Button variant="outline-danger" size="sm" onClick={() => handleShowDeleteConfirm(giangVien)}>
