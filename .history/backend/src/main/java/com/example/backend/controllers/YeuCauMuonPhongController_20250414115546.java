@@ -321,10 +321,6 @@ public class YeuCauMuonPhongController {
                 List<Map<String, Date>> busyIntervals = new ArrayList<>();
                 
                 // Add all room booking requests to busy intervals
-                System.out.println("Yeucaumuon cho phòng " + phong.getMaPhong());
-                for(YeuCauMuonPhong yc : yeuCauList){
-                    System.out.println("Yeucau phòng " + yc.getThoiGianMuon() + yc.getThoiGianTra());
-                }
                 for (YeuCauMuonPhong yeuCau : yeuCauList) {
                     Map<String, Date> interval = new HashMap<>();
                     interval.put("start", yeuCau.getThoiGianMuon());

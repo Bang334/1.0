@@ -336,8 +336,10 @@ class UserService {
     return api.get(`/suco/kiemtra/${maYeuCau}`);
   }
   timPhongTrong(thoiGianMuon, thoiGianTra, soChoDat, loaiPhong) {
+    // Get current user from localStorage
     const user = JSON.parse(localStorage.getItem("user"));
     const idTaiKhoan = user ? user.id : null;
+    
     const params = {
       thoiGianMuon,
       thoiGianTra,

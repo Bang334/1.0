@@ -318,6 +318,19 @@ public class YeuCauMuonPhongController {
                 List<YeuCauMuonPhong> yeuCauList = yeuCauMuonPhongRepository.findByPhongAndTrangThaiAndThoiGianMuonBetween(
                         phong, startOfDay, endOfDay);
                 List<ThoiKhoaBieu> tkbList = thoiKhoaBieuRepository.findByPhongAndNgayHoc(phong, thoiGianMuon);
+                
+                // Kiểm tra trực tiếp trùng lịch cho thoiGianMuon và thoiGianTra
+                List<YeuCauMuonPhong> trungLichTrucTiep = yeuCauMuonPhongRepository.kiemTraTrungLichPhong(
+                        phong.getMaPhong(), thoiGianMuon, thoiGianTra);
+                System.out.println("Kiểm tra trung lịch trực tiếp cho phòng " + phong.getMaPhong() + ": " + trungLichTrucTiep.size());
+                if (!trungLichTrucTiep.isEmpty()) {
+                    System.out.println("  Chi tiết yêu cầu trùng lịch:");
+                    for (YeuCauMuonPhong yc : trungLichTrucTiep) {
+                        System.out.println("  - ID: " + yc.getMaYeuCau() + ", TrangThai: " + yc.getTrangThai() + 
+                                           ", Từ: " + yc.getThoiGianMuon() + ", Đến: " + yc.getThoiGianTra());
+                    }
+                }
+
                 List<Map<String, Date>> busyIntervals = new ArrayList<>();
                 
                 // Add all room booking requests to busy intervals

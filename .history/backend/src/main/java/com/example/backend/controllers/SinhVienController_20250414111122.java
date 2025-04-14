@@ -332,10 +332,7 @@ public class SinhVienController {
         if (minutesSince7AM < 360) return 8; // 12:15 - 12:59 -> Tiết 8
         if (minutesSince7AM < 405) return 9; // 13:00 - 13:44 -> Tiết 9
         if (minutesSince7AM < 450) return 10; // 13:45 - 14:29 -> Tiết 10
-        if (minutesSince7AM < 495) return 11; // 14:30 - 15:14 -> Tiết 11
-        if (minutesSince7AM < 540) return 12; // 15:15 - 15:59 -> Tiết 12
-        if (minutesSince7AM < 585) return 13; // 16:00 - 16:44 -> Tiết 13
-        if (minutesSince7AM < 630) return 14; // 16:45 - 17:29 -> Tiết 14
+    
         return 0; // Sau 14:30 -> Không có tiết
     }
     

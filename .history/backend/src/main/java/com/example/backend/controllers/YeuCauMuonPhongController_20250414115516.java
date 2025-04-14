@@ -321,10 +321,6 @@ public class YeuCauMuonPhongController {
                 List<Map<String, Date>> busyIntervals = new ArrayList<>();
                 
                 // Add all room booking requests to busy intervals
-                System.out.println("Yeucaumuon cho phòng " + phong.getMaPhong());
-                for(YeuCauMuonPhong yc : yeuCauList){
-                    System.out.println("Yeucau phòng " + yc.getThoiGianMuon() + yc.getThoiGianTra());
-                }
                 for (YeuCauMuonPhong yeuCau : yeuCauList) {
                     Map<String, Date> interval = new HashMap<>();
                     interval.put("start", yeuCau.getThoiGianMuon());
@@ -375,7 +371,7 @@ public class YeuCauMuonPhongController {
                 busyIntervals.sort(Comparator.comparing(interval -> interval.get("start")));
             
                 // In ra busyIntervals để debug
-                System.out.println("BusyIntervals cho phòng " + phong.getMaPhong());
+                System.out.println("BusyIntervals cho phòng " + phong.getMaPhong() + " - " + phong.getTenPhong() + ":");
                 for (Map<String, Date> interval : busyIntervals) {
                     System.out.println("  Thời gian bận: " + interval.get("start") + " đến " + interval.get("end"));
                 }

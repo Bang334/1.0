@@ -259,6 +259,8 @@ public class YeuCauMuonPhongController {
                     for (ThoiKhoaBieu tkb : tkbList) {
                         Date tkbStart = getThoiGianBatDauFromTiet(tkb.getTietBatDau(), tkb.getNgayHoc());
                         Date tkbEnd = getThoiGianKetThucFromTiet(tkb.getTietKetThuc(), tkb.getNgayHoc());
+                        System.out.println(tkbStart);
+                        System.out.println(tkbEnd);
                         if (thoiGianMuon.before(tkbEnd) && thoiGianTra.after(tkbStart)) {
                             // Check if this is the student's own class
                             if (sinhVien != null && tkb.getLopHoc() != null && sinhVien.getLopHoc() != null 
@@ -321,10 +323,6 @@ public class YeuCauMuonPhongController {
                 List<Map<String, Date>> busyIntervals = new ArrayList<>();
                 
                 // Add all room booking requests to busy intervals
-                System.out.println("Yeucaumuon cho phòng " + phong.getMaPhong());
-                for(YeuCauMuonPhong yc : yeuCauList){
-                    System.out.println("Yeucau phòng " + yc.getThoiGianMuon() + yc.getThoiGianTra());
-                }
                 for (YeuCauMuonPhong yeuCau : yeuCauList) {
                     Map<String, Date> interval = new HashMap<>();
                     interval.put("start", yeuCau.getThoiGianMuon());
@@ -374,42 +372,26 @@ public class YeuCauMuonPhongController {
                 
                 busyIntervals.sort(Comparator.comparing(interval -> interval.get("start")));
             
-                // In ra busyIntervals để debug
-                System.out.println("BusyIntervals cho phòng " + phong.getMaPhong());
-                for (Map<String, Date> interval : busyIntervals) {
-                    System.out.println("  Thời gian bận: " + interval.get("start") + " đến " + interval.get("end"));
-                }
-                
                 // Tìm các khoảng thời gian trống
                 List<Map<String, Date>> khoangThoiGianTrong = new ArrayList<>();
                 Date lastEndTime = startOfDay;
             
                 for (Map<String, Date> busy : busyIntervals) {
-                    Date currentTime = new Date(); // Thêm lấy thời gian hiện tại
                     if (lastEndTime.before(busy.get("start"))) {
-                        // Chỉ thêm vào khoảng thời gian trống nếu thời gian bắt đầu không nằm trong quá khứ
-                        if (!lastEndTime.before(currentTime)) {
-                            Map<String, Date> khoang = new HashMap<>();
-                            khoang.put("start", lastEndTime);
-                            khoang.put("end", busy.get("start"));
-                            System.out.println("khoang");
-                            System.out.println(khoang);
-                            khoangThoiGianTrong.add(khoang);
-                        }
+                        Map<String, Date> khoang = new HashMap<>();
+                        khoang.put("start", lastEndTime);
+                        khoang.put("end", busy.get("start"));
+                        khoangThoiGianTrong.add(khoang);
                     }
                     lastEndTime = busy.get("end");
                 }
             
                 // Thêm khoảng thời gian trống từ cuối khoảng bận cuối cùng đến cuối ngày
                 if (lastEndTime.before(endOfDay)) {
-                    Date currentTime = new Date();
-                    // Chỉ thêm vào nếu không trong quá khứ
-                    if (!lastEndTime.before(currentTime)) {
-                        Map<String, Date> khoang = new HashMap<>();
-                        khoang.put("start", lastEndTime);
-                        khoang.put("end", endOfDay);
-                        khoangThoiGianTrong.add(khoang);
-                    }
+                    Map<String, Date> khoang = new HashMap<>();
+                    khoang.put("start", lastEndTime);
+                    khoang.put("end", endOfDay);
+                    khoangThoiGianTrong.add(khoang);
                 }
             
                 // Tìm khoảng thời gian trống khả thi và gần nhất
