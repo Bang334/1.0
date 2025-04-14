@@ -209,7 +209,6 @@ public class YeuCauMuonPhongController {
                 Optional<NguoiDung> nguoiDungOpt = nguoiDungRepository.findByTaiKhoanId(idTaiKhoan);
                 if (nguoiDungOpt.isPresent()) {
                     idNguoiDung = nguoiDungOpt.get().getIdNguoiDung();
-                    System.out.println("Converted ID: " + idTaiKhoan + " to " + idNguoiDung);
                 }
             }
             
@@ -320,11 +319,6 @@ public class YeuCauMuonPhongController {
                 List<ThoiKhoaBieu> tkbList = thoiKhoaBieuRepository.findByPhongAndNgayHoc(phong, thoiGianMuon);
                 List<Map<String, Date>> busyIntervals = new ArrayList<>();
                 
-                // Add all room booking requests to busy intervals
-                System.out.println("Yeucaumuon cho phòng " + phong.getMaPhong());
-                for(YeuCauMuonPhong yc : yeuCauList){
-                    System.out.println("Yeucau phòng " + yc.getThoiGianMuon() + yc.getThoiGianTra());
-                }
                 for (YeuCauMuonPhong yeuCau : yeuCauList) {
                     Map<String, Date> interval = new HashMap<>();
                     interval.put("start", yeuCau.getThoiGianMuon());
@@ -374,11 +368,6 @@ public class YeuCauMuonPhongController {
                 
                 busyIntervals.sort(Comparator.comparing(interval -> interval.get("start")));
             
-                // In ra busyIntervals để debug
-                System.out.println("BusyIntervals cho phòng " + phong.getMaPhong());
-                for (Map<String, Date> interval : busyIntervals) {
-                    System.out.println("  Thời gian bận: " + interval.get("start") + " đến " + interval.get("end"));
-                }
                 
                 // Tìm các khoảng thời gian trống
                 List<Map<String, Date>> khoangThoiGianTrong = new ArrayList<>();
@@ -398,8 +387,6 @@ public class YeuCauMuonPhongController {
                             Map<String, Date> khoang = new HashMap<>();
                             khoang.put("start", lastEndTime.before(currentTimePlus5Min) ? currentTimePlus5Min : lastEndTime);
                             khoang.put("end", busy.get("start"));
-                            System.out.println("khoang");
-                            System.out.println(khoang);
                             khoangThoiGianTrong.add(khoang);
                         }
                     }
@@ -427,9 +414,14 @@ public class YeuCauMuonPhongController {
                 // Tìm khoảng thời gian trống khả thi và gần nhất
                 Map<String, Object> nearestKhoang = null;
                 long minDiff = Long.MAX_VALUE;
+
+                // Lưu lại thời điểm mượn yêu cầu để so sánh
+                long requestStartTime = thoiGianMuon.getTime();
+
                 for (Map<String, Date> khoang : khoangThoiGianTrong) {
                     Date start = khoang.get("start");
                     Date end = khoang.get("end");
+                    
                     // Kiểm tra nếu thời gian bắt đầu và kết thúc nằm trong giờ hành chính (7h - 22h)
                     Calendar startCal = Calendar.getInstance();
                     startCal.setTime(start);
@@ -452,30 +444,65 @@ public class YeuCauMuonPhongController {
                         end = endCal.getTime();
                     }
             
+                    // Kiểm tra khoảng thời gian có đủ dài cho yêu cầu mượn không
                     if (end.getTime() - start.getTime() >= duration) {
-                        // Kiểm tra xem khoảng thời gian gợi ý có trùng với lịch bận không
-                        Date goiYStart = start;
-                        Date goiYEnd = new Date(start.getTime() + duration);
-                        boolean isConflict = false;
-            
+                        // Tạo 2 lựa chọn: đầu khoảng trống và cuối khoảng trống
+                        // Lựa chọn 1: Bắt đầu từ đầu khoảng trống
+                        Date option1Start = start;
+                        Date option1End = new Date(start.getTime() + duration);
+                        
+                        // Lựa chọn 2: Kết thúc ở cuối khoảng trống
+                        Date option2Start = new Date(end.getTime() - duration);
+                        Date option2End = end;
+                        
+                        // Kiểm tra xung đột cho lựa chọn 1
+                        boolean isOption1Conflict = false;
                         for (Map<String, Date> busy : busyIntervals) {
                             Date busyStart = busy.get("start");
                             Date busyEnd = busy.get("end");
-                            if (goiYStart.before(busyEnd) && goiYEnd.after(busyStart)) {
-                                isConflict = true;
+                            if (option1Start.before(busyEnd) && option1End.after(busyStart)) {
+                                isOption1Conflict = true;
                                 break;
                             }
                         }
-            
-                        // Nếu không trùng, tính độ lệch và chọn khoảng gần nhất
-                        if (!isConflict) {
-                            long diff = Math.abs(start.getTime() - thoiGianMuon.getTime());
+                        
+                        // Kiểm tra độ lệch của lựa chọn 1 (nếu không xung đột)
+                        if (!isOption1Conflict) {
+                            long diff = Math.abs(option1Start.getTime() - requestStartTime);
+                            
                             if (diff < minDiff) {
                                 minDiff = diff;
                                 Map<String, Object> goiY = new HashMap<>();
                                 goiY.put("phong", phong);
-                                goiY.put("thoiGianMuonGoiY", goiYStart);
-                                goiY.put("thoiGianTraGoiY", goiYEnd);
+                                goiY.put("thoiGianMuonGoiY", option1Start);
+                                goiY.put("thoiGianTraGoiY", option1End);
+                                nearestKhoang = goiY;
+                            }
+                        }
+                        
+                        // Kiểm tra xung đột cho lựa chọn 2
+                        boolean isOption2Conflict = false;
+                        for (Map<String, Date> busy : busyIntervals) {
+                            Date busyStart = busy.get("start");
+                            Date busyEnd = busy.get("end");
+                            if (option2Start.before(busyEnd) && option2End.after(busyStart)) {
+                                isOption2Conflict = true;
+                                break;
+                            }
+                        }
+                        
+                        // Kiểm tra độ lệch của lựa chọn 2 (nếu không xung đột)
+                        if (!isOption2Conflict) {
+                            long diff = Math.abs(option2Start.getTime() - requestStartTime);
+                            System.out.println("Phòng " + phong.getMaPhong() + ": Lựa chọn cuối khoảng " + 
+                                         option2Start + " - " + option2End + " có độ lệch " + diff);
+                            
+                            if (diff < minDiff) {
+                                minDiff = diff;
+                                Map<String, Object> goiY = new HashMap<>();
+                                goiY.put("phong", phong);
+                                goiY.put("thoiGianMuonGoiY", option2Start);
+                                goiY.put("thoiGianTraGoiY", option2End);
                                 nearestKhoang = goiY;
                             }
                         }
