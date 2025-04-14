@@ -39,7 +39,7 @@ const TaiKhoanManager = (props) => {
     hoTen: "",
     email: "",
     lienHe: "",
-    gioiTinh: "Nam",
+    gioiTinh: "Không xác định",
     vaiTro: "ROLE_SV",
     maLop: "",
     khoa: "",
@@ -125,7 +125,7 @@ const TaiKhoanManager = (props) => {
       hoTen: "",
       email: "",
       lienHe: "",
-      gioiTinh: "Nam",
+      gioiTinh: "Không xác định",
       vaiTro: "ROLE_SV",
       maLop: "",
       khoa: "",
@@ -486,9 +486,9 @@ const TaiKhoanManager = (props) => {
                     onChange={handleInputChange}
                     required
                   >
-                    <option value="Nam">Nam</option>
-                    <option value="Nu">Nữ</option>
                     <option value="KhongXacDinh">Không xác định</option>
+                    <option value="NAM">Nam</option>
+                    <option value="Nu">Nữ</option>
                   </Form.Select>
                 </Form.Group>
               </Col>
@@ -667,9 +667,9 @@ const TaiKhoanManager = (props) => {
                     value={formData.gioiTinh}
                     onChange={handleInputChange}
                   >
-                    <option value="Nam">Nam</option>
-                    <option value="Nu">Nữ</option>
                     <option value="KhongXacDinh">Không xác định</option>
+                    <option value="N">Nam</option>
+                    <option value="Nu">Nữ</option>
                   </Form.Select>
                 </Form.Group>
               </Col>
