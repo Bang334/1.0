@@ -174,27 +174,33 @@ public class YeuCauMuonPhongSchedulerService {
                 
                 // Nếu đã đến thời điểm kiểm tra (30 phút trước khi mượn)
                 if (now.after(thoiGianKiemTra.getTime())) {
-                    // Cập nhật trạng thái yêu cầu
-                    yeuCau.setTrangThai(YeuCauMuonPhong.TrangThai.KHONGDUOCDUYET);
-                    yeuCau.setLyDo("Phòng đang được bảo trì");
-                    yeuCauMuonPhongRepository.save(yeuCau);
+                    // Kiểm tra xem đã có bản ghi trong lịch sử mượn phòng chưa
+                    List<LichSuMuonPhong> lichSuList = lichSuMuonPhongRepository.findByYeuCauMuonPhong(yeuCau);
                     
-                    // Tạo thông báo
-                    ThongBaoGui thongBaoGui = new ThongBaoGui();
-                    thongBaoGui.setTieuDe("Thông báo hủy yêu cầu mượn phòng");
-                    thongBaoGui.setNoiDung("Vì phòng " + yeuCau.getPhong().getMaPhong() + 
-                        " đang được bảo trì nên yêu cầu mượn phòng của bạn từ " + 
-                        yeuCau.getThoiGianMuon() + " đến " + yeuCau.getThoiGianTra() + 
-                        " đã bị hủy, xin bạn hãy thông cảm cho chúng tôi.");
-                    thongBaoGui.setThoiGian(now);
-                    thongBaoGui = thongBaoGuiRepository.save(thongBaoGui);
-                    
-                    // Gửi thông báo đến người mượn
-                    ThongBaoNhan thongBaoNhan = new ThongBaoNhan();
-                    thongBaoNhan.setThongBaoGui(thongBaoGui);
-                    thongBaoNhan.setNguoiNhan(yeuCau.getNguoiMuon());
-                    thongBaoNhan.setTrangThai(ThongBaoNhan.TrangThai.CHUADOC);
-                    thongBaoNhanRepository.save(thongBaoNhan);
+                    // Chỉ cập nhật và gửi thông báo nếu chưa có bản ghi lịch sử
+                    if (lichSuList.isEmpty()) {
+                        // Cập nhật trạng thái yêu cầu
+                        yeuCau.setTrangThai(YeuCauMuonPhong.TrangThai.KHONGDUOCDUYET);
+                        yeuCau.setLyDo("Phòng đang được bảo trì");
+                        yeuCauMuonPhongRepository.save(yeuCau);
+                        
+                        // Tạo thông báo
+                        ThongBaoGui thongBaoGui = new ThongBaoGui();
+                        thongBaoGui.setTieuDe("Thông báo hủy yêu cầu mượn phòng");
+                        thongBaoGui.setNoiDung("Vì phòng " + yeuCau.getPhong().getMaPhong() + 
+                            " đang được bảo trì nên yêu cầu mượn phòng của bạn từ " + 
+                            yeuCau.getThoiGianMuon() + " đến " + yeuCau.getThoiGianTra() + 
+                            " đã bị hủy, xin bạn hãy thông cảm cho chúng tôi.");
+                        thongBaoGui.setThoiGian(now);
+                        thongBaoGui = thongBaoGuiRepository.save(thongBaoGui);
+                        
+                        // Gửi thông báo đến người mượn
+                        ThongBaoNhan thongBaoNhan = new ThongBaoNhan();
+                        thongBaoNhan.setThongBaoGui(thongBaoGui);
+                        thongBaoNhan.setNguoiNhan(yeuCau.getNguoiMuon());
+                        thongBaoNhan.setTrangThai(ThongBaoNhan.TrangThai.CHUADOC);
+                        thongBaoNhanRepository.save(thongBaoNhan);
+                    }
                 }
             }
         }

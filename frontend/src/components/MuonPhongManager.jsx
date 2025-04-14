@@ -1404,11 +1404,6 @@ const MuonPhongManager = ({
                           <Card.Title>{goiY.phong.maPhong} - {goiY.phong.loaiPhong}</Card.Title>
                           <Card.Text className="mb-1">Sức chứa: {goiY.phong.sucChua} người</Card.Text>
                           <Card.Text className="mb-1">Thời gian trống: {formatDate(goiY.thoiGianMuonGoiY)} - {formatDate(goiY.thoiGianTraGoiY)}</Card.Text>
-                          <Card.Text className="mb-1">
-                            <small className="text-muted">
-                              {tinhThoiGianTruoc(goiY.thoiGianMuonGoiY)} {goiY.thoiGianMuonGoiY > muonPhongNangCaoForm.thoiGianMuon ? 'sau' : 'trước'} thời gian yêu cầu
-                            </small>
-                          </Card.Text>
                           <Button 
                             variant="outline-primary" 
                             size="sm" 

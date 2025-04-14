@@ -3,16 +3,18 @@ package com.example.backend.controllers;
 import com.example.backend.model.NguoiDung;
 import com.example.backend.model.Phong;
 import com.example.backend.model.SinhVien;
-import com.example.backend.model.ThoiKhoaBieu;
+import com.example.backend.model.GiangVien;
 import com.example.backend.model.YeuCauMuonPhong;
 import com.example.backend.model.YeuCauMuonPhong.TrangThai;
+import com.example.backend.model.ThoiKhoaBieu;
 import com.example.backend.payload.request.YeuCauMuonPhongRequest;
 import com.example.backend.payload.response.MessageResponse;
 import com.example.backend.repository.NguoiDungRepository;
 import com.example.backend.repository.PhongRepository;
 import com.example.backend.repository.SinhVienRepository;
-import com.example.backend.repository.ThoiKhoaBieuRepository;
+import com.example.backend.repository.GiangVienRepository;
 import com.example.backend.repository.YeuCauMuonPhongRepository;
+import com.example.backend.repository.ThoiKhoaBieuRepository;
 import com.example.backend.service.UserDetailsImpl;
 
 import org.springframework.format.annotation.DateTimeFormat;
@@ -48,12 +50,15 @@ public class YeuCauMuonPhongController {
 
     @Autowired
     private NguoiDungRepository nguoiDungRepository;
-    
+
     @Autowired
     private ThoiKhoaBieuRepository thoiKhoaBieuRepository;
 
+    @Autowired
+    private GiangVienRepository giangVienRepository;
+
     @PostMapping("/gui")
-    @PreAuthorize("hasRole('SV') or hasRole('GV')")
+    @PreAuthorize("hasRole('SV')")
     public ResponseEntity<?> guiYeuCauMuonPhong(@RequestBody YeuCauMuonPhongRequest yeuCauRequest) {
         try {
             // Kiểm tra người dùng hiện tại
@@ -176,7 +181,7 @@ public class YeuCauMuonPhongController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new MessageResponse("Lỗi khi xử lý yêu cầu: " + e.getMessage()));
         }
-    }
+    }   
 
     @GetMapping("/phongtrong")
     @PreAuthorize("hasRole('SV') or hasRole('GV')")
@@ -184,22 +189,34 @@ public class YeuCauMuonPhongController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Date thoiGianMuon,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Date thoiGianTra,
             @RequestParam(required = false) Integer soChoDat,
-            @RequestParam(required = false) String loaiPhong) {
+            @RequestParam(required = false) String loaiPhong,
+            @RequestParam(required = false) String idTaiKhoan) {
         try {
             // Kiểm tra thời gian có hợp lệ không
             if (thoiGianMuon == null || thoiGianTra == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new MessageResponse("Thời gian mượn và trả không được để trống"));
             }
-            
+
             if (thoiGianMuon.after(thoiGianTra)) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new MessageResponse("Thời gian mượn phải trước thời gian trả"));
             }
+            
+            // Convert account ID to user ID if provided
+            String idNguoiDung = null;
+            if (idTaiKhoan != null && !idTaiKhoan.isEmpty()) {
+                Optional<NguoiDung> nguoiDungOpt = nguoiDungRepository.findByTaiKhoanId(idTaiKhoan);
+                if (nguoiDungOpt.isPresent()) {
+                    idNguoiDung = nguoiDungOpt.get().getIdNguoiDung();
+                }
+            }
+            
             long duration = thoiGianTra.getTime() - thoiGianMuon.getTime();
+
             // Lấy danh sách tất cả phòng
             List<Phong> danhSachPhong;
-            
+
             // Lọc theo loại phòng nếu có
             if (loaiPhong != null && !loaiPhong.isEmpty()) {
                 try {
@@ -212,21 +229,60 @@ public class YeuCauMuonPhongController {
             } else {
                 danhSachPhong = phongRepository.findAll();
             }
-            
+
             // Lọc theo số chỗ ngồi nếu có
             if (soChoDat != null && soChoDat > 0) {
                 danhSachPhong.removeIf(phong -> phong.getSucChua() < soChoDat);
             }
-            
+
             List<Phong> phongTrongList = new ArrayList<>();
             for (Phong phong : danhSachPhong) {
+                // Kiểm tra trùng với yêu cầu mượn phòng
                 List<YeuCauMuonPhong> trungLichPhong = yeuCauMuonPhongRepository.kiemTraTrungLichPhong(
                         phong.getMaPhong(), thoiGianMuon, thoiGianTra);
                 if (trungLichPhong.isEmpty() && phong.getTrangThai() != Phong.TrangThai.BAOTRI) {
-                    phongTrongList.add(phong);
+                    // Kiểm tra trùng với thời khóa biểu
+                    List<ThoiKhoaBieu> tkbList = thoiKhoaBieuRepository.findByPhongAndNgayHoc(phong, thoiGianMuon);
+                    boolean isConflict = false;
+                    
+                    // Get user information to check for exceptions
+                    SinhVien sinhVien = null;
+                    GiangVien giangVien = null;
+                    if (idNguoiDung != null && !idNguoiDung.isEmpty()) {
+                        sinhVien = sinhVienRepository.findByNguoiDungIdNguoiDung(idNguoiDung);
+                        Optional<GiangVien> giangVienOpt = giangVienRepository.findByNguoiDungIdNguoiDung(idNguoiDung);
+                        if (giangVienOpt.isPresent()) {
+                            giangVien = giangVienOpt.get();
+                        }
+                    }
+                    for (ThoiKhoaBieu tkb : tkbList) {
+                        Date tkbStart = getThoiGianBatDauFromTiet(tkb.getTietBatDau(), tkb.getNgayHoc());
+                        Date tkbEnd = getThoiGianKetThucFromTiet(tkb.getTietKetThuc(), tkb.getNgayHoc());
+                        if (thoiGianMuon.before(tkbEnd) && thoiGianTra.after(tkbStart)) {
+                            // Check if this is the student's own class
+                            if (sinhVien != null && tkb.getLopHoc() != null && sinhVien.getLopHoc() != null 
+                                && tkb.getLopHoc().getMaLop().equals(sinhVien.getLopHoc().getMaLop())) {
+                                // This is student's own class, no conflict
+                                continue;
+                            }
+                            // Check if this is the lecturer's own teaching schedule
+                            if (giangVien != null && tkb.getGiangVien() != null 
+                                && tkb.getGiangVien().getMaGV().equals(giangVien.getMaGV())) {
+                                // This is lecturer's own teaching schedule, no conflict
+                                continue;
+                            }
+                            
+                            // If we reach here, there's a conflict
+                            isConflict = true;
+                            break;
+                        }
+                    }
+                    if (!isConflict) {
+                        phongTrongList.add(phong);
+                    }
                 }
             }
-    
+
             // Nếu có phòng trống, trả về danh sách phòng trống
             if (!phongTrongList.isEmpty()) {
                 return ResponseEntity.ok(
@@ -236,58 +292,132 @@ public class YeuCauMuonPhongController {
                         )
                 );
             }
-            
+
             List<Map<String, Object>> goiYPhongGanNhat = new ArrayList<>();
 
-            // Xác định khoảng thời gian rộng hơn (từ 7h sáng đến 22h tối) để tìm các yêu cầu mượn phòng
+            // Xác định khoảng thời gian rộng hơn (từ 7h sáng đến 22h tối)
             Calendar calendar = Calendar.getInstance();
             calendar.setTime(thoiGianMuon);
             calendar.set(Calendar.HOUR_OF_DAY, 7);
             calendar.set(Calendar.MINUTE, 0);
             calendar.set(Calendar.SECOND, 0);
             Date startOfDay = calendar.getTime();
-    
+            
             calendar.set(Calendar.HOUR_OF_DAY, 22);
             calendar.set(Calendar.MINUTE, 0);
             calendar.set(Calendar.SECOND, 0);
             Date endOfDay = calendar.getTime();
-    
+            
             for (Phong phong : danhSachPhong) {
-                if(phong.getTrangThai() == Phong.TrangThai.BAOTRI){
+                if (phong.getTrangThai() == Phong.TrangThai.BAOTRI) {
                     continue;
                 }
+            
+                // Lấy danh sách yêu cầu mượn phòng và thời khóa biểu trong ngày
                 List<YeuCauMuonPhong> yeuCauList = yeuCauMuonPhongRepository.findByPhongAndTrangThaiAndThoiGianMuonBetween(
                         phong, startOfDay, endOfDay);
-    
-                // Sắp xếp các yêu cầu theo thời gian mượn
-                yeuCauList.sort(Comparator.comparing(YeuCauMuonPhong::getThoiGianMuon));
-    
+                List<ThoiKhoaBieu> tkbList = thoiKhoaBieuRepository.findByPhongAndNgayHoc(phong, thoiGianMuon);
+                List<Map<String, Date>> busyIntervals = new ArrayList<>();
+                
+                for (YeuCauMuonPhong yeuCau : yeuCauList) {
+                    Map<String, Date> interval = new HashMap<>();
+                    interval.put("start", yeuCau.getThoiGianMuon());
+                    interval.put("end", yeuCau.getThoiGianTra());
+                    busyIntervals.add(interval);
+                }
+                
+                // Get user information to check for exceptions
+                SinhVien sinhVien = null;
+                GiangVien giangVien = null;
+                
+                if (idNguoiDung != null && !idNguoiDung.isEmpty()) {
+                    // Check if user is a student
+                    sinhVien = sinhVienRepository.findByNguoiDungIdNguoiDung(idNguoiDung);
+                    
+                    // Check if user is a lecturer
+                    Optional<GiangVien> giangVienOpt = giangVienRepository.findByNguoiDungIdNguoiDung(idNguoiDung);
+                    if (giangVienOpt.isPresent()) {
+                        giangVien = giangVienOpt.get();
+                    }
+                }
+                
+                // Add class schedules to busy intervals, skipping the user's own classes
+                for (ThoiKhoaBieu tkb : tkbList) {
+                    // Check if this is the student's own class
+                    if (sinhVien != null && tkb.getLopHoc() != null && sinhVien.getLopHoc() != null 
+                        && tkb.getLopHoc().getMaLop().equals(sinhVien.getLopHoc().getMaLop())) {
+                        // This is student's own class, skip adding to busy intervals
+                        continue;
+                    }
+                    
+                    // Check if this is the lecturer's own teaching schedule
+                    if (giangVien != null && tkb.getGiangVien() != null 
+                        && tkb.getGiangVien().getMaGV().equals(giangVien.getMaGV())) {
+                        // This is lecturer's own teaching schedule, skip adding to busy intervals
+                        continue;
+                    }
+                    
+                    // If not the user's own schedule, add as busy interval
+                    Date tkbStart = getThoiGianBatDauFromTiet(tkb.getTietBatDau(), tkb.getNgayHoc());
+                    Date tkbEnd = getThoiGianKetThucFromTiet(tkb.getTietKetThuc(), tkb.getNgayHoc());
+                    Map<String, Date> interval = new HashMap<>();
+                    interval.put("start", tkbStart);
+                    interval.put("end", tkbEnd);
+                    busyIntervals.add(interval);
+                }
+                
+                busyIntervals.sort(Comparator.comparing(interval -> interval.get("start")));
+            
+                
                 // Tìm các khoảng thời gian trống
                 List<Map<String, Date>> khoangThoiGianTrong = new ArrayList<>();
                 Date lastEndTime = startOfDay;
-    
-                for (YeuCauMuonPhong yeuCau : yeuCauList) {
-                    if (lastEndTime.before(yeuCau.getThoiGianMuon())) {
+            
+                for (Map<String, Date> busy : busyIntervals) {
+                    Date currentTime = new Date(); // Lấy thời gian hiện tại
+                    // Thêm 5 phút vào thời gian hiện tại
+                    Calendar calPlus5Min = Calendar.getInstance();
+                    calPlus5Min.setTime(currentTime);
+                    calPlus5Min.add(Calendar.MINUTE, 5);
+                    Date currentTimePlus5Min = calPlus5Min.getTime();
+                    
+                    if (lastEndTime.before(busy.get("start"))) {
+                        // Thêm khoảng thời gian nếu thời gian kết thúc nằm trong tương lai
+                        if (busy.get("start").after(currentTime)) {
+                            Map<String, Date> khoang = new HashMap<>();
+                            khoang.put("start", lastEndTime.before(currentTimePlus5Min) ? currentTimePlus5Min : lastEndTime);
+                            khoang.put("end", busy.get("start"));
+                            khoangThoiGianTrong.add(khoang);
+                        }
+                    }
+                    lastEndTime = busy.get("end");
+                }
+            
+                // Thêm khoảng thời gian trống từ cuối khoảng bận cuối cùng đến cuối ngày
+                if (lastEndTime.before(endOfDay)) {
+                    Date currentTime = new Date();
+                    // Thêm 5 phút vào thời gian hiện tại
+                    Calendar calPlus5Min = Calendar.getInstance();
+                    calPlus5Min.setTime(currentTime);
+                    calPlus5Min.add(Calendar.MINUTE, 5);
+                    Date currentTimePlus5Min = calPlus5Min.getTime();
+                    
+                    // Thêm khoảng thời gian nếu thời gian kết thúc nằm trong tương lai
+                    if (endOfDay.after(currentTime)) {
                         Map<String, Date> khoang = new HashMap<>();
-                        khoang.put("start", lastEndTime);
-                        khoang.put("end", yeuCau.getThoiGianMuon());
+                        khoang.put("start", lastEndTime.before(currentTimePlus5Min) ? currentTimePlus5Min : lastEndTime);
+                        khoang.put("end", endOfDay);
                         khoangThoiGianTrong.add(khoang);
                     }
-                    lastEndTime = yeuCau.getThoiGianTra();
                 }
-    
-                // Thêm khoảng thời gian trống từ cuối yêu cầu cuối cùng đến cuối ngày
-                if (lastEndTime.before(endOfDay)) {
-                    Map<String, Date> khoang = new HashMap<>();
-                    khoang.put("start", lastEndTime);
-                    khoang.put("end", endOfDay);
-                    khoangThoiGianTrong.add(khoang);
-                }
-    
-                // Tìm khoảng thời gian trống gần nhất với thời gian yêu cầu
+            
+                // Tìm khoảng thời gian trống khả thi và gần nhất
                 Map<String, Object> nearestKhoang = null;
                 long minDiff = Long.MAX_VALUE;
-    
+
+                // Lưu lại thời điểm mượn yêu cầu để so sánh
+                long requestStartTime = thoiGianMuon.getTime();
+
                 for (Map<String, Date> khoang : khoangThoiGianTrong) {
                     Date start = khoang.get("start");
                     Date end = khoang.get("end");
@@ -296,16 +426,16 @@ public class YeuCauMuonPhongController {
                     Calendar startCal = Calendar.getInstance();
                     startCal.setTime(start);
                     int startHour = startCal.get(Calendar.HOUR_OF_DAY);
-                    
+            
                     Calendar endCal = Calendar.getInstance();
                     endCal.setTime(end);
                     int endHour = endCal.get(Calendar.HOUR_OF_DAY);
-                    
+            
                     // Bỏ qua nếu thời gian bắt đầu trước 7h hoặc sau 22h
                     if (startHour < 7 || startHour >= 22) {
                         continue;
                     }
-                    
+            
                     // Giới hạn thời gian kết thúc không quá 22h
                     if (endHour >= 22) {
                         endCal.set(Calendar.HOUR_OF_DAY, 22);
@@ -313,45 +443,115 @@ public class YeuCauMuonPhongController {
                         endCal.set(Calendar.SECOND, 0);
                         end = endCal.getTime();
                     }
-
-                    // Kiểm tra xem khoảng thời gian trống có đủ dài không
+            
+                    // Kiểm tra khoảng thời gian có đủ dài cho yêu cầu mượn không
                     if (end.getTime() - start.getTime() >= duration) {
-                        // Tính độ lệch so với thời gian yêu cầu
-                        long diff = Math.abs(start.getTime() - thoiGianMuon.getTime());
-                        if (diff < minDiff) {
-                            minDiff = diff;
-                            Map<String, Object> goiY = new HashMap<>();
-                            goiY.put("phong", phong);
-                            goiY.put("thoiGianMuonGoiY", start);
-                            goiY.put("thoiGianTraGoiY", new Date(start.getTime() + duration));
-                            nearestKhoang = goiY;
+                        // Tạo 2 lựa chọn: đầu khoảng trống và cuối khoảng trống
+                        // Lựa chọn 1: Bắt đầu từ đầu khoảng trống
+                        Date option1Start = start;
+                        Date option1End = new Date(start.getTime() + duration);
+                        
+                        // Lựa chọn 2: Kết thúc ở cuối khoảng trống
+                        Date option2Start = new Date(end.getTime() - duration);
+                        Date option2End = end;
+                        
+                        // Kiểm tra xung đột cho lựa chọn 1
+                        boolean isOption1Conflict = false;
+                        for (Map<String, Date> busy : busyIntervals) {
+                            Date busyStart = busy.get("start");
+                            Date busyEnd = busy.get("end");
+                            if (option1Start.before(busyEnd) && option1End.after(busyStart)) {
+                                isOption1Conflict = true;
+                                break;
+                            }
+                        }
+                        
+                        // Kiểm tra độ lệch của lựa chọn 1 (nếu không xung đột)
+                        if (!isOption1Conflict) {
+                            long diff = Math.abs(option1Start.getTime() - requestStartTime);
+                            
+                            if (diff < minDiff) {
+                                minDiff = diff;
+                                Map<String, Object> goiY = new HashMap<>();
+                                goiY.put("phong", phong);
+                                goiY.put("thoiGianMuonGoiY", option1Start);
+                                goiY.put("thoiGianTraGoiY", option1End);
+                                nearestKhoang = goiY;
+                            }
+                        }
+                        
+                        // Kiểm tra xung đột cho lựa chọn 2
+                        boolean isOption2Conflict = false;
+                        for (Map<String, Date> busy : busyIntervals) {
+                            Date busyStart = busy.get("start");
+                            Date busyEnd = busy.get("end");
+                            if (option2Start.before(busyEnd) && option2End.after(busyStart)) {
+                                isOption2Conflict = true;
+                                break;
+                            }
+                        }
+                        
+                        // Kiểm tra độ lệch của lựa chọn 2 (nếu không xung đột)
+                        if (!isOption2Conflict) {
+                            long diff = Math.abs(option2Start.getTime() - requestStartTime);
+                            System.out.println("Phòng " + phong.getMaPhong() + ": Lựa chọn cuối khoảng " + 
+                                         option2Start + " - " + option2End + " có độ lệch " + diff);
+                            
+                            if (diff < minDiff) {
+                                minDiff = diff;
+                                Map<String, Object> goiY = new HashMap<>();
+                                goiY.put("phong", phong);
+                                goiY.put("thoiGianMuonGoiY", option2Start);
+                                goiY.put("thoiGianTraGoiY", option2End);
+                                nearestKhoang = goiY;
+                            }
                         }
                     }
                 }
-    
+            
                 if (nearestKhoang != null) {
                     goiYPhongGanNhat.add(nearestKhoang);
                 }
             }
-    
+
             // Sắp xếp các gợi ý theo độ lệch
             goiYPhongGanNhat.sort(Comparator.comparingLong(goiY -> {
                 Date start = (Date) goiY.get("thoiGianMuonGoiY");
                 return Math.abs(start.getTime() - thoiGianMuon.getTime());
             }));
-    
-            // Trả về kết quả
             return ResponseEntity.ok(
                     java.util.Map.of(
                             "phongTrongList", Collections.emptyList(),
                             "goiYPhongGanNhat", goiYPhongGanNhat
                     )
             );
-            
+
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new MessageResponse("Lỗi khi xử lý yêu cầu: " + e.getMessage()));
         }
+    }
+
+    // Phương thức chuyển đổi tiết học thành thời gian bắt đầu
+    private Date getThoiGianBatDauFromTiet(int tietBatDau, Date ngayHoc) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(ngayHoc);
+        int minutesSince7AM = (tietBatDau - 1) * 45; // Mỗi tiết cách nhau 45 phút
+        cal.set(Calendar.HOUR_OF_DAY, 7 + (minutesSince7AM / 60));
+        cal.set(Calendar.MINUTE, minutesSince7AM % 60);
+        cal.set(Calendar.SECOND, 0);
+        return cal.getTime();
+    }
+
+    // Phương thức chuyển đổi tiết học thành thời gian kết thúc
+    private Date getThoiGianKetThucFromTiet(int tietKetThuc, Date ngayHoc) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(ngayHoc);
+        int minutesSince7AM = (tietKetThuc - 1) * 45 + 44; // Thời gian kết thúc = bắt đầu + 44 phút
+        cal.set(Calendar.HOUR_OF_DAY, 7 + (minutesSince7AM / 60));
+        cal.set(Calendar.MINUTE, minutesSince7AM % 60);
+        cal.set(Calendar.SECOND, 0);
+        return cal.getTime();
     }
 } 
