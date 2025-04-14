@@ -69,7 +69,7 @@ public interface YeuCauMuonPhongRepository extends JpaRepository<YeuCauMuonPhong
     List<YeuCauMuonPhong> findByNguoiMuonIdNguoiDungOrderByThoiGianMuonDesc(String idNguoiDung);
     // Hàm mới được thêm vào
     @Query("SELECT y FROM YeuCauMuonPhong y WHERE y.phong = :phong "
-            + "AND y.trangThai = 'DADUYET' OR y.trangThai = 'DANGXULY'  "
+            + "AND (y.trangThai = 'DADUYET' OR y.trangThai = 'DANGXULY')  "
             + "AND y.thoiGianMuon >= :startTime "
             + "AND y.thoiGianMuon <= :endTime")
     List<YeuCauMuonPhong> findByPhongAndTrangThaiAndThoiGianMuonBetween(

@@ -385,12 +385,18 @@ public class YeuCauMuonPhongController {
                 Date lastEndTime = startOfDay;
             
                 for (Map<String, Date> busy : busyIntervals) {
-                    Date currentTime = new Date(); // Thêm lấy thời gian hiện tại
+                    Date currentTime = new Date(); // Lấy thời gian hiện tại
+                    // Thêm 5 phút vào thời gian hiện tại
+                    Calendar calPlus5Min = Calendar.getInstance();
+                    calPlus5Min.setTime(currentTime);
+                    calPlus5Min.add(Calendar.MINUTE, 5);
+                    Date currentTimePlus5Min = calPlus5Min.getTime();
+                    
                     if (lastEndTime.before(busy.get("start"))) {
-                        // Chỉ thêm vào khoảng thời gian trống nếu thời gian bắt đầu không nằm trong quá khứ
-                        if (!lastEndTime.before(currentTime)) {
+                        // Thêm khoảng thời gian nếu thời gian kết thúc nằm trong tương lai
+                        if (busy.get("start").after(currentTime)) {
                             Map<String, Date> khoang = new HashMap<>();
-                            khoang.put("start", lastEndTime);
+                            khoang.put("start", lastEndTime.before(currentTimePlus5Min) ? currentTimePlus5Min : lastEndTime);
                             khoang.put("end", busy.get("start"));
                             System.out.println("khoang");
                             System.out.println(khoang);
@@ -403,10 +409,16 @@ public class YeuCauMuonPhongController {
                 // Thêm khoảng thời gian trống từ cuối khoảng bận cuối cùng đến cuối ngày
                 if (lastEndTime.before(endOfDay)) {
                     Date currentTime = new Date();
-                    // Chỉ thêm vào nếu không trong quá khứ
-                    if (!lastEndTime.before(currentTime)) {
+                    // Thêm 5 phút vào thời gian hiện tại
+                    Calendar calPlus5Min = Calendar.getInstance();
+                    calPlus5Min.setTime(currentTime);
+                    calPlus5Min.add(Calendar.MINUTE, 5);
+                    Date currentTimePlus5Min = calPlus5Min.getTime();
+                    
+                    // Thêm khoảng thời gian nếu thời gian kết thúc nằm trong tương lai
+                    if (endOfDay.after(currentTime)) {
                         Map<String, Date> khoang = new HashMap<>();
-                        khoang.put("start", lastEndTime);
+                        khoang.put("start", lastEndTime.before(currentTimePlus5Min) ? currentTimePlus5Min : lastEndTime);
                         khoang.put("end", endOfDay);
                         khoangThoiGianTrong.add(khoang);
                     }
