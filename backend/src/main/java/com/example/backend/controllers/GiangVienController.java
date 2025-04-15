@@ -1245,12 +1245,18 @@ public class GiangVienController {
     private Date getTimeFromTiet(int tiet, Date ngayHoc) {
         Calendar cal = Calendar.getInstance();
         cal.setTime(ngayHoc);
-        cal.set(Calendar.HOUR_OF_DAY, 7 + tiet - 1); // bắt đầu từ 7h, mỗi tiết +1h
+        cal.set(Calendar.HOUR_OF_DAY, 7);
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND, 0);
+
+        // Mỗi tiết là 45 phút, tiết 1 bắt đầu từ 7h00
+        int minutesToAdd = (tiet - 1) * 45;
+        cal.add(Calendar.MINUTE, minutesToAdd);
+
         return cal.getTime();
     }
+
     
     public int getISOWeekNumber(Date date) {
         // Tạo calendar từ ngày truyền vào
