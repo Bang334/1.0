@@ -97,7 +97,7 @@ public class AuthController {
                     roles));
         } catch (BadCredentialsException e) {
             System.out.println("Authentication failed for user: " + loginRequest.getUserId());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new MessageResponse("Tài khoản hoặc mật khẩu không đúng"));
         } catch (AuthenticationException e) {
             System.out.println("Error during authentication: " + e.getMessage());
