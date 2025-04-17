@@ -779,6 +779,82 @@ END //
 DELIMITER ;
 ```
 
+### 1.10 Xem thông tin cá nhân
+```sql
+DELIMITER //
+CREATE PROCEDURE sp_SinhVien_XemThongTinCaNhan(
+    IN p_maSV VARCHAR(10)
+)
+BEGIN
+    -- Lấy thông tin sinh viên
+    SELECT 
+        sv.MaSV,
+        nd.IDNguoiDung,
+        nd.HoTen,
+        nd.Email,
+        nd.LienHe,
+        nd.GioiTinh,
+        nd.AvatarURL,
+        lh.MaLop,
+        lh.TenLop,
+        lh.SiSo
+    FROM 
+        SinhVien sv
+    JOIN 
+        NguoiDung nd ON sv.IDNguoiDung = nd.IDNguoiDung
+    LEFT JOIN 
+        LopHoc lh ON sv.MaLop = lh.MaLop
+    WHERE 
+        sv.MaSV = p_maSV;
+END //
+DELIMITER ;
+```
+
+### 1.11 Xem lịch học của lớp
+```sql
+DELIMITER //
+CREATE PROCEDURE sp_SinhVien_XemLichHocLop(
+    IN p_maSV VARCHAR(10)
+)
+BEGIN
+    DECLARE v_maLop VARCHAR(20);
+    
+    -- Lấy mã lớp của sinh viên
+    SELECT MaLop INTO v_maLop
+    FROM SinhVien
+    WHERE MaSV = p_maSV;
+    
+    -- Lấy thông tin lịch học của lớp
+    SELECT 
+        tkb.MaTKB,
+        tkb.NgayHoc,
+        tkb.ThuTrongTuan,
+        tkb.TietBatDau,
+        tkb.TietKetThuc,
+        p.MaPhong,
+        p.TenPhong,
+        p.ViTri,
+        mh.MaMon,
+        mh.TenMon,
+        gv.MaGV,
+        nd.HoTen AS TenGiangVien
+    FROM 
+        ThoiKhoaBieu tkb
+    JOIN 
+        Phong p ON tkb.MaPhong = p.MaPhong
+    JOIN 
+        MonHoc mh ON tkb.MaMon = mh.MaMon
+    JOIN 
+        GiangVien gv ON tkb.MaGV = gv.MaGV
+    JOIN 
+        NguoiDung nd ON gv.IDNguoiDung = nd.IDNguoiDung
+    WHERE 
+        tkb.MaLop = v_maLop
+    ORDER BY 
+        tkb.NgayHoc, tkb.TietBatDau;
+END //
+DELIMITER ;
+```
 ## 2. Triggers
 
 ### 2.1. Tự động tạo thông báo khi yêu cầu được phê duyệt
