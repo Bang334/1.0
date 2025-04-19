@@ -335,7 +335,7 @@ function ThoiKhoaBieu({ data, currentUser, isGiangVien }) {
                             <div className="lesson-details">
                               <div className="lesson-info">
                                 <FaUsers className="info-icon" /> 
-                                <span>Lớp: {lesson.lopHoc?.maLop}</span>
+                                <span>Mã Lớp: {lesson.lopHoc?.maLop}</span>
                               </div>
                               
                               <div className="lesson-info">
