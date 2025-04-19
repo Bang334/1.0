@@ -43,10 +43,14 @@ import {
   faBookOpen,
   faUserLarge,
   faUsers,
+  faChartLine,
+  faChartBar,
+  faChartPie,
 } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
 import UserService from "../services/user.service";
 import ThongKeTanSuatPhong from "./ThongKeTanSuatPhong";
+import "./BoardAdmin.css";
 
 const API_URL = "http://localhost:8080/api/quanly";
 
@@ -292,14 +296,20 @@ const BoardAdmin = () => {
   };
 
   return (
-    <Container fluid className="mt-4">
-      <header className="mb-4">
+    <Container fluid className="mt-4 admin-dashboard">
+      <header className="mb-4 dashboard-header">
         <div className="d-flex justify-content-between align-items-center">
-          <h3>Trang Quản Lý</h3>
+          <div className="d-flex align-items-center">
+            <h3 className="mb-0">
+              <FontAwesomeIcon icon={faChartLine} className="me-2 text-primary" />
+              Trang Quản Lý
+            </h3>
+          </div>
           <Button
             variant="outline-primary"
             onClick={handleManualRefresh}
             disabled={loading}
+            className="refresh-btn"
           >
             <FontAwesomeIcon
               icon={faSync}
@@ -316,39 +326,50 @@ const BoardAdmin = () => {
       >
         <Row>
           <Col md={3} className="mb-4">
-            <Card>
+            <Card className="menu-card">
               <Card.Header className="bg-primary text-white">
+                <FontAwesomeIcon icon={faChartBar} className="me-2" />
                 Chức năng quản lý
               </Card.Header>
-              <ListGroup variant="flush">
-                <ListGroup.Item action eventKey="dashboard">
+              <ListGroup variant="flush" className="menu-list">
+                <ListGroup.Item action eventKey="dashboard" className="menu-item">
+                  <FontAwesomeIcon icon={faChartPie} className="me-2" />
                   Dashboard
                 </ListGroup.Item>
-                <ListGroup.Item action eventKey="quanlyphong">
+                <ListGroup.Item action eventKey="quanlyphong" className="menu-item">
+                  <FontAwesomeIcon icon={faBookOpen} className="me-2" />
                   Quản lý phòng học
                 </ListGroup.Item>
-                <ListGroup.Item action eventKey="quanlygiaovien">
+                <ListGroup.Item action eventKey="quanlygiaovien" className="menu-item">
+                  <FontAwesomeIcon icon={faUserLarge} className="me-2" />
                   Quản lý giảng viên
                 </ListGroup.Item>
-                <ListGroup.Item action eventKey="quanlysinhvien">
+                <ListGroup.Item action eventKey="quanlysinhvien" className="menu-item">
+                  <FontAwesomeIcon icon={faUsers} className="me-2" />
                   Quản lý sinh viên
                 </ListGroup.Item>
-                <ListGroup.Item action eventKey="quanlytaikhoan">
+                <ListGroup.Item action eventKey="quanlytaikhoan" className="menu-item">
+                  <FontAwesomeIcon icon={faUserLarge} className="me-2" />
                   Quản lý tài khoản
                 </ListGroup.Item>
-                <ListGroup.Item action eventKey="duyetyeucau">
+                <ListGroup.Item action eventKey="duyetyeucau" className="menu-item">
+                  <FontAwesomeIcon icon={faCalendarCheck} className="me-2" />
                   Quản lý yêu cầu mượn phòng
                 </ListGroup.Item>
-                <ListGroup.Item action eventKey="lichsumuon">
+                <ListGroup.Item action eventKey="lichsumuon" className="menu-item">
+                  <FontAwesomeIcon icon={faCalendarAlt} className="me-2" />
                   Lịch sử mượn phòng
                 </ListGroup.Item>
-                <ListGroup.Item action eventKey="baocao">
+                <ListGroup.Item action eventKey="baocao" className="menu-item">
+                  <FontAwesomeIcon icon={faChartBar} className="me-2" />
                   Thống kê phản hồi
                 </ListGroup.Item>
-                <ListGroup.Item action eventKey="suco">
+                <ListGroup.Item action eventKey="suco" className="menu-item">
+                  <FontAwesomeIcon icon={faFlag} className="me-2" />
                   Quản lý sự cố
                 </ListGroup.Item>
-                <ListGroup.Item action eventKey="thong-ke-tan-suat">
+                <ListGroup.Item action eventKey="thong-ke-tan-suat" className="menu-item">
+                  <FontAwesomeIcon icon={faChartLine} className="me-2" />
                   Thống kê tần suất mượn phòng
                 </ListGroup.Item>
               </ListGroup>
@@ -357,147 +378,71 @@ const BoardAdmin = () => {
           <Col md={9}>
             <Tab.Content>
               <Tab.Pane eventKey="dashboard">
-                <Card>
+                <Card className="dashboard-card">
                   <Card.Body>
-                    <Card.Title>Dashboard Quản Lý</Card.Title>
-                    <Card.Text>
+                    <Card.Title className="dashboard-title">
+                      <FontAwesomeIcon icon={faChartPie} className="me-2 text-primary" />
+                      Dashboard Quản Lý
+                    </Card.Title>
+                    <Card.Text className="dashboard-description">
                       Chào mừng đến với trang quản lý hệ thống mượn phòng học.
-                      Tại đây bạn có thể quản lý tất cả các khía cạnh của hệ
-                      thống.
+                      Tại đây bạn có thể quản lý tất cả các khía cạnh của hệ thống.
                     </Card.Text>
-                    <hr />
-                    <h5>Thống kê hệ thống</h5>
+                    <hr className="dashboard-divider" />
+                    <h5 className="stats-title">
+                      <FontAwesomeIcon icon={faChartBar} className="me-2 text-primary" />
+                      Thống kê hệ thống
+                    </h5>
 
                     {loading ? (
                       <div className="text-center py-4">
-                        <Spinner animation="border" role="status">
+                        <Spinner animation="border" role="status" variant="primary">
                           <span className="visually-hidden">Loading...</span>
                         </Spinner>
                       </div>
                     ) : dashboardStats ? (
                       <Row>
                         <Col sm={6} md={3} className="mb-3">
-                          <Card className="text-start p-1">
+                          <Card className="stat-card text-start p-1">
                             <Card.Body>
-                              <h3 className="text-primary">
+                              <h3 className="text-primary stat-number">
                                 {dashboardStats.totalRooms}
-                                <FontAwesomeIcon
-                                  icon={faBookOpen}
-                                  className="ms-5 "
-                                />
+                                <FontAwesomeIcon icon={faBookOpen} className="ms-5 stat-icon" />
                               </h3>
-
-                              <div>Phòng học</div>
+                              <div className="stat-label">Phòng học</div>
                             </Card.Body>
                           </Card>
                         </Col>
                         <Col sm={6} md={3} className="mb-3">
-                          <Card className="text-start p-1">
+                          <Card className="stat-card text-start p-1">
                             <Card.Body>
-                              <h3 className="text-success">
+                              <h3 className="text-success stat-number">
                                 {dashboardStats.totalLecturers}
-                                <FontAwesomeIcon
-                                  icon={faUserLarge}
-                                  className="ms-5 "
-                                />
+                                <FontAwesomeIcon icon={faUserLarge} className="ms-5 stat-icon" />
                               </h3>
-                              <div>Giảng viên</div>
+                              <div className="stat-label">Giảng viên</div>
                             </Card.Body>
                           </Card>
                         </Col>
                         <Col sm={6} md={3} className="mb-3">
-                          <Card className="text-start p-1">
+                          <Card className="stat-card text-start p-1">
                             <Card.Body>
-                              <h3 className="text-warning">
+                              <h3 className="text-warning stat-number">
                                 {dashboardStats.totalStudents}
-                                <FontAwesomeIcon
-                                  icon={faUsers}
-                                  className="ms-5 "
-                                />
+                                <FontAwesomeIcon icon={faUsers} className="ms-5 stat-icon" />
                               </h3>
-                              <div>Sinh viên</div>
+                              <div className="stat-label">Sinh viên</div>
                             </Card.Body>
                           </Card>
                         </Col>
                         <Col sm={6} md={3} className="mb-3">
-                          <Card className="text-start p-1">
+                          <Card className="stat-card text-start p-1">
                             <Card.Body>
-                              <h3 className="text-danger">
-                                {dashboardStats.roomStatusCounts.DANGSUDUNG ||
-                                  0}
-                                <FontAwesomeIcon
-                                  icon={faCalendarCheck}
-                                  className="ms-5 "
-                                />
+                              <h3 className="text-danger stat-number">
+                                {dashboardStats.roomStatusCounts.DANGSUDUNG || 0}
+                                <FontAwesomeIcon icon={faCalendarCheck} className="ms-5 stat-icon" />
                               </h3>
-                              <div>Đang mượn</div>
-                            </Card.Body>
-                          </Card>
-                        </Col>
-                        <Col sm={6} md={6} className="mb-3">
-                          <Card>
-                            <Card.Body>
-                              <h5 className="mb-3">Trạng thái phòng</h5>
-                              {dashboardStats.roomStatusCounts && (
-                                <div>
-                                  <div className="d-flex justify-content-between mb-2">
-                                    <div>Trống:</div>
-                                    <div>
-                                      <strong>
-                                        {dashboardStats.roomStatusCounts
-                                          .TRONG || 0}
-                                      </strong>
-                                    </div>
-                                  </div>
-                                  <div className="d-flex justify-content-between mb-2">
-                                    <div>Đang sử dụng:</div>
-                                    <div>
-                                      <strong>
-                                        {dashboardStats.roomStatusCounts
-                                          .DANGSUDUNG || 0}
-                                      </strong>
-                                    </div>
-                                  </div>
-                                  <div className="d-flex justify-content-between mb-2">
-                                    <div>Đang bảo trì:</div>
-                                    <div>
-                                      <strong>
-                                        {dashboardStats.roomStatusCounts
-                                          .BAOTRI || 0}
-                                      </strong>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                            </Card.Body>
-                          </Card>
-                        </Col>
-                        <Col sm={6} md={6} className="mb-3">
-                          <Card>
-                            <Card.Body>
-                              <h5 className="mb-3">Yêu cầu mượn phòng</h5>
-                              <div className="d-flex justify-content-between mb-2">
-                                <div>Đang chờ duyệt:</div>
-                                <div>
-                                  <strong>
-                                    {dashboardStats.pendingBookings}
-                                  </strong>
-                                </div>
-                              </div>
-                              <div className="d-flex justify-content-between mb-2">
-                                <div>Đang sử dụng:</div>
-                                <div>
-                                  <strong>
-                                    {dashboardStats.activeBookings}
-                                  </strong>
-                                </div>
-                              </div>
-                              <div className="d-flex justify-content-between mb-2">
-                                <div>Tổng người dùng:</div>
-                                <div>
-                                  <strong>{dashboardStats.totalUsers}</strong>
-                                </div>
-                              </div>
+                              <div className="stat-label">Đang mượn</div>
                             </Card.Body>
                           </Card>
                         </Col>

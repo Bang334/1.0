@@ -23,6 +23,7 @@ import {
   faKey,
   faUsers,
   faSchool,
+  faUserPlus,
 } from "@fortawesome/free-solid-svg-icons";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -34,7 +35,7 @@ const SinhVienManager = ({ refreshKey }) => {
   const [lopHocList, setLopHocList] = useState([]);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [showAddLopModal, setShowAddLopModal] = useState(false);
+  const [showAddSinhVienModal, setShowAddSinhVienModal] = useState(false);
   const [currentSinhVien, setCurrentSinhVien] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -48,10 +49,6 @@ const SinhVienManager = ({ refreshKey }) => {
     maLop: "",
     userId: "",
     password: "",
-  });
-  const [lopFormData, setLopFormData] = useState({
-    maLop: "",
-    tenLop: "",
   });
 
   // Lấy danh sách sinh viên khi component được render
@@ -91,22 +88,12 @@ const SinhVienManager = ({ refreshKey }) => {
   // Lấy danh sách lớp học từ API
   const fetchLopHocList = async () => {
     try {
-      // Kiểm tra xem user đã đăng nhập chưa
-      const user = JSON.parse(localStorage.getItem("user"));
-      if (!user || !user.token) {
-        console.log(
-          "Không có token xác thực, bỏ qua việc lấy danh sách lớp học"
-        );
-        return;
-      }
-
       const response = await axios.get(`${API_URL}/lophoc`, {
         headers: authHeader(),
       });
       setLopHocList(response.data);
     } catch (error) {
       console.error("Lỗi khi lấy danh sách lớp học:", error);
-      // Không hiển thị lỗi 401 (Unauthorized) trên giao diện vì có thể user chưa đăng nhập
       if (error.response && error.response.status !== 401) {
         toast.error("Không thể lấy danh sách lớp học. Vui lòng thử lại sau.");
       }
@@ -118,15 +105,6 @@ const SinhVienManager = ({ refreshKey }) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: value,
-    });
-  };
-
-  // Xử lý thay đổi trên form lớp học
-  const handleLopInputChange = (e) => {
-    const { name, value } = e.target;
-    setLopFormData({
-      ...lopFormData,
       [name]: value,
     });
   };
@@ -144,32 +122,39 @@ const SinhVienManager = ({ refreshKey }) => {
     }
   };
 
-  // Hiển thị modal thêm lớp học mới
-  const handleShowAddLopModal = () => {
-    setLopFormData({
+  // Hiển thị modal thêm sinh viên mới
+  const handleShowAddSinhVienModal = () => {
+    setFormData({
+      maSV: "",
+      hoTen: "",
+      email: "",
+      lienHe: "",
+      gioiTinh: "Nam",
       maLop: "",
-      tenLop: "",
+      userId: "",
+      password: "",
     });
-    setShowAddLopModal(true);
+    setShowTaiKhoanForm(false);
+    setShowAddSinhVienModal(true);
   };
 
-  // Thêm lớp học mới
-  const handleAddLopHoc = async () => {
-    if (!lopFormData.maLop || !lopFormData.tenLop) {
+  // Thêm sinh viên mới
+  const handleAddSinhVien = async () => {
+    if (!formData.maSV || !formData.hoTen || !formData.email || !formData.gioiTinh) {
       toast.error("Vui lòng điền đầy đủ thông tin bắt buộc.");
       return;
     }
 
     try {
-      const response = await axios.post(`${API_URL}/lophoc`, lopFormData, {
+      const response = await axios.post(`${API_URL}/sinhvien`, formData, {
         headers: authHeader(),
       });
-      setShowAddLopModal(false);
-      toast.success("Lớp học đã được tạo thành công!");
-      fetchLopHocList();
+      setShowAddSinhVienModal(false);
+      toast.success("Sinh viên đã được tạo thành công!");
+      fetchSinhVienList();
     } catch (error) {
       toast.error(
-        error.response?.data?.message || "Đã có lỗi xảy ra khi tạo lớp học."
+        error.response?.data?.message || "Đã có lỗi xảy ra khi tạo sinh viên."
       );
     }
   };
@@ -277,8 +262,8 @@ const SinhVienManager = ({ refreshKey }) => {
           <div className="d-flex justify-content-between align-items-center mb-2">
             <h5 className="mb-0">Quản lý sinh viên</h5>
 
-            <Button variant="outline-light" onClick={handleShowAddLopModal}>
-              <FontAwesomeIcon icon={faSchool} /> Thêm lớp học
+            <Button variant="outline-light" onClick={handleShowAddSinhVienModal}>
+              <FontAwesomeIcon icon={faUserPlus} /> Thêm sinh viên
             </Button>
           </div>
         </Card.Header>
@@ -371,49 +356,176 @@ const SinhVienManager = ({ refreshKey }) => {
         </Card.Body>
       </Card>
 
-      {/* Modal Thêm lớp học */}
+      {/* Modal Thêm sinh viên mới */}
       <Modal
-        show={showAddLopModal}
-        onHide={() => setShowAddLopModal(false)}
+        show={showAddSinhVienModal}
+        onHide={() => setShowAddSinhVienModal(false)}
         backdrop="static"
+        size="lg"
       >
         <Modal.Header closeButton>
-          <Modal.Title>Tạo lớp học mới</Modal.Title>
+          <Modal.Title>Thêm sinh viên mới</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>
-                Mã lớp <span className="text-danger">*</span>
-              </Form.Label>
-              <Form.Control
-                type="text"
-                name="maLop"
-                value={lopFormData.maLop}
-                onChange={handleLopInputChange}
-                required
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>
-                Tên lớp <span className="text-danger">*</span>
-              </Form.Label>
-              <Form.Control
-                type="text"
-                name="tenLop"
-                value={lopFormData.tenLop}
-                onChange={handleLopInputChange}
-                required
-              />
-            </Form.Group>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>
+                    Mã sinh viên <span className="text-danger">*</span>
+                  </Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="maSV"
+                    value={formData.maSV}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Lớp</Form.Label>
+                  <Form.Select
+                    name="maLop"
+                    value={formData.maLop}
+                    onChange={handleInputChange}
+                  >
+                    <option value="">-- Chọn lớp --</option>
+                    {lopHocList.map((lop) => (
+                      <option key={lop.maLop} value={lop.maLop}>
+                        {lop.tenLop} ({lop.maLop})
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>
+                    Họ tên <span className="text-danger">*</span>
+                  </Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="hoTen"
+                    value={formData.hoTen}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>
+                    Email <span className="text-danger">*</span>
+                  </Form.Label>
+                  <Form.Control
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Số điện thoại</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="lienHe"
+                    value={formData.lienHe}
+                    onChange={handleInputChange}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>
+                    Giới tính <span className="text-danger">*</span>
+                  </Form.Label>
+                  <Form.Select
+                    name="gioiTinh"
+                    value={formData.gioiTinh}
+                    onChange={handleInputChange}
+                    required
+                  >
+                    <option value="Nam">Nam</option>
+                    <option value="Nu">Nữ</option>
+                    <option value="KhongXacDinh">Không xác định</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row>
+              <Col>
+                <Form.Group className="mb-3">
+                  <Button
+                    variant="link"
+                    onClick={handleToggleTaiKhoanForm}
+                    className="p-0"
+                  >
+                    <FontAwesomeIcon icon={faKey} className="me-1" />
+                    {showTaiKhoanForm
+                      ? "Ẩn thông tin tài khoản"
+                      : "Thêm thông tin tài khoản"}
+                  </Button>
+                </Form.Group>
+              </Col>
+            </Row>
+
+            {showTaiKhoanForm && (
+              <Card className="mb-3 bg-light">
+                <Card.Body>
+                  <Card.Title className="fs-6">Thông tin tài khoản</Card.Title>
+                  <Row>
+                    <Col md={6}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>
+                          Tên đăng nhập <span className="text-danger">*</span>
+                        </Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="userId"
+                          value={formData.userId}
+                          onChange={handleInputChange}
+                          required
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>
+                          Mật khẩu <span className="text-danger">*</span>
+                        </Form.Label>
+                        <Form.Control
+                          type="password"
+                          name="password"
+                          value={formData.password}
+                          onChange={handleInputChange}
+                          required
+                        />
+                      </Form.Group>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+            )}
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowAddLopModal(false)}>
+          <Button variant="secondary" onClick={() => setShowAddSinhVienModal(false)}>
             Hủy
           </Button>
-          <Button variant="primary" onClick={handleAddLopHoc}>
-            Tạo lớp học
+          <Button variant="primary" onClick={handleAddSinhVien}>
+            Thêm sinh viên
           </Button>
         </Modal.Footer>
       </Modal>
