@@ -14,6 +14,9 @@ import BoardUser from "./components/BoardUser";
 import SinhVienBoard from "./components/SinhVienBoard";
 import NavBar from "./components/NavBar";
 import GiangVienBoard from "./components/GiangVienBoard";
+import ProtectedRoute from "./components/ProtectedRoute";
+import PublicOnlyRoute from "./components/PublicOnlyRoute";
+import { isAuthenticated, getDefaultRoute, handleLogout } from "./utils/authUtils";
 
 const App = () => {
   const [currentUser, setCurrentUser] = useState(undefined);
@@ -30,7 +33,7 @@ const App = () => {
         const user = authService.getCurrentUser();
         if (user) {
           setCurrentUser(user);
-          setShowQuanLyBoard(user.roles.includes("ROLE_QL"));
+          setShowQuanLyBoard(user.roles.includes("ROLE_QL") || user.roles.includes("ROLE_ADMIN"));
           setShowGiangVienBoard(user.roles.includes("ROLE_GV"));
           setShowSinhVienBoard(user.roles.includes("ROLE_SV"));
         }
@@ -44,8 +47,9 @@ const App = () => {
     fetchUser();
   }, []);
 
-  const handleLogout = () => {
+  const onLogout = () => {
     authService.logout();
+    handleLogout();
     setCurrentUser(undefined);
     setShowQuanLyBoard(false);
     setShowGiangVienBoard(false);
@@ -78,46 +82,62 @@ const App = () => {
         showAdminBoard={showQuanLyBoard}
         showEmployeeBoard={showGiangVienBoard}
         showSinhVienBoard={showSinhVienBoard}
-        onLogout={handleLogout}
+        onLogout={onLogout}
       />
       <div className="custom-container">
         <Routes>
+          {/* Public routes */}
           <Route path="/" element={<Home />} />
           <Route path="/home" element={<Home />} />
+          
+          {/* Login route - only accessible when not logged in */}
           <Route path="/login" element={
-            currentUser ? (
-              <Navigate to={getDefaultRoute(currentUser.roles)} replace />
-            ) : (
+            <PublicOnlyRoute>
               <Login setCurrentUser={setCurrentUser} />
-            )
+            </PublicOnlyRoute>
           } />
+          
+          {/* Protected routes */}
           <Route path="/profile" element={
-            currentUser ? <Profile currentUser={currentUser} /> : <Navigate to="/login" replace />
+            <ProtectedRoute>
+              <Profile currentUser={currentUser} />
+            </ProtectedRoute>
           } />
+          
+          {/* Admin routes */}
           <Route path="/admin" element={
-            showQuanLyBoard ? <BoardAdmin /> : <Navigate to="/login" replace />
+            <ProtectedRoute requiredRoles={['ROLE_QL', 'ROLE_ADMIN']}>
+              <BoardAdmin />
+            </ProtectedRoute>
           } />
+          
+          {/* Giảng viên routes */}
           <Route path="/giangvien" element={
-            showGiangVienBoard ? <GiangVienBoard /> : <Navigate to="/login" replace />
+            <ProtectedRoute requiredRoles={['ROLE_GV']}>
+              <GiangVienBoard />
+            </ProtectedRoute>
           } />
-          <Route path="/user" element={
-            currentUser ? <BoardUser /> : <Navigate to="/login" replace />
-          } />
+          
+          {/* Sinh viên routes */}
           <Route path="/sinhvien" element={
-            showSinhVienBoard ? <SinhVienBoard /> : <Navigate to="/login" replace />
+            <ProtectedRoute requiredRoles={['ROLE_SV']}>
+              <SinhVienBoard />
+            </ProtectedRoute>
           } />
+          
+          {/* General user route */}
+          <Route path="/user" element={
+            <ProtectedRoute>
+              <BoardUser />
+            </ProtectedRoute>
+          } />
+          
+          {/* Fallback route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
     </div>
   );
-};
-
-// Helper function to get default route based on user roles
-const getDefaultRoute = (roles) => {
-  if (roles.includes("ROLE_SV")) return "/sinhvien";
-  if (roles.includes("ROLE_GV")) return "/giangvien";
-  if (roles.includes("ROLE_QL")) return "/admin";
-  return "/profile";
 };
 
 export default App;

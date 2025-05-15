@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Form, Button, Card } from 'react-bootstrap';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { FaGraduationCap, FaUser, FaLock, FaFacebookF, FaTwitter, FaInstagram, FaPhoneAlt, FaEnvelope, FaMapMarkerAlt } from 'react-icons/fa';
 import AuthService from '../services/auth.service';
 import { toast } from "react-toastify";
+import { setAuth, getDefaultRoute } from '../utils/authUtils';
 
 // Định nghĩa CSS inline để tránh CSS khác ghi đè
 const styles = {
@@ -177,9 +178,14 @@ const styles = {
 
 const Login = ({ setCurrentUser }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const authService = new AuthService();
+  
+  // Xác định role từ URL query parameter
+  const searchParams = new URLSearchParams(location.search);
+  const roleParam = searchParams.get('role');
 
   // Show toast when message changes
   useEffect(() => {
@@ -223,6 +229,33 @@ const Login = ({ setCurrentUser }) => {
     };
   }, []);
 
+  // Thiết lập title và hướng dẫn dựa vào role
+  const getPageTitle = () => {
+    switch(roleParam) {
+      case 'admin':
+        return 'Đăng nhập Quản lý';
+      case 'giangvien':
+        return 'Đăng nhập Giảng viên';
+      case 'sinhvien':
+        return 'Đăng nhập Sinh viên';
+      default:
+        return 'Đăng nhập Hệ thống';
+    }
+  };
+  
+  const getPageSubtitle = () => {
+    switch(roleParam) {
+      case 'admin':
+        return 'Vui lòng đăng nhập với tài khoản quản lý';
+      case 'giangvien':
+        return 'Vui lòng đăng nhập với tài khoản giảng viên';
+      case 'sinhvien':
+        return 'Vui lòng đăng nhập với tài khoản sinh viên';
+      default:
+        return 'Chào mừng trở lại, vui lòng đăng nhập để tiếp tục';
+    }
+  };
+
   const initialValues = {
     userId: '',
     password: '',
@@ -245,24 +278,21 @@ const Login = ({ setCurrentUser }) => {
             // Đảm bảo cập nhật currentUser trước khi điều hướng
             setCurrentUser(data);
             
+            // Lưu thông tin xác thực bằng utils function
+            setAuth(data.token, data);
+            
             // Thêm timeout ngắn để đảm bảo state được cập nhật trước khi điều hướng
             setTimeout(() => {
-              // Kiểm tra role và chuyển hướng tương ứng
-              const roles = data.roles || [];
-              if (roles.includes('ROLE_SV')) {
-                navigate('/sinhvien');
-              } else if (roles.includes('ROLE_GV')) {
-                navigate('/giangvien');
-              } else if (roles.includes('ROLE_ADMIN') || roles.includes('ROLE_QL')) {
-                navigate('/admin');
-              } else {
-                navigate('/profile');
-              }
-              window.location.reload();
+              // Lấy đường dẫn mặc định dựa trên role của người dùng
+              const defaultRoute = getDefaultRoute();
+              
+              // Nếu có from từ location state, chuyển hướng về đó
+              const { from } = location.state || { from: defaultRoute };
+              navigate(from || defaultRoute);
             }, 100);
           } else {
-            setMessage("Đăng nhập thành công nhưng không nhận được token");
             setLoading(false);
+            setMessage("Đăng nhập thành công nhưng không nhận được token");
           }
         }
       )
@@ -298,8 +328,8 @@ const Login = ({ setCurrentUser }) => {
         <div style={styles.formContainer}>
           <div className="text-center">
             <FaGraduationCap size={100} style={styles.logo} />
-            <h1 style={styles.heading}>Đăng nhập Hệ thống</h1>
-            <p style={styles.subheading}>Vui lòng đăng nhập để tiếp tục</p>
+            <h1 style={styles.heading}>{getPageTitle()}</h1>
+            <p style={styles.subheading}>{getPageSubtitle()}</p>
           </div>
           
           <Card style={styles.card}>
